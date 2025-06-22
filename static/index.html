@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Static Server</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Go Static File Server!</h1>
+    <p>This HTML page is served directly by our Go application.</p>
+    <p>The styling comes from a separate CSS file.</p>
+    <img src="/static/go-logo.jpg" alt="Go Gopher" width="150px">
+    <p>You can also access the <a href="/api/person">JSON Person API</a> or try the <a href="/api/search?query=example&limit=10">Search API</a>.</p>
+</body>
+</html>

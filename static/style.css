@@ -1,0 +1,13 @@
+body {
+    background-color: #f0f0f0;
+    color: #0056b3; /* A shade of blue for text */
+}
+
+h1 {
+    color: #d9534f; /* A shade of red for heading */
+    text-decoration: underline;
+}
+
+p {
+    margin-bottom: 10px;
+}
