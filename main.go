@@ -16,6 +16,12 @@ type Person struct {
 	Is_Student bool   `json:"is_student"`
 }
 
+type Error_Response struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+	Details string `json:"details,omitempty"`
+}
+
 func main() {
 
 	mux := http.NewServeMux()
@@ -41,6 +47,7 @@ func handle_root(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/index.html")
 		return
 	}
+	send_JSON_error(w, "not found", http.StatusNotFound, "the requested resource was not found")
 }
 
 func handle_hello(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +74,7 @@ func handle_get_person(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(person); err != nil {
 		log.Printf("Error encoding json %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		send_JSON_error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 }
@@ -81,12 +88,12 @@ func handle_register(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&new_person); err != nil {
 		log.Printf("Error decoding JSON Request body : %v", err)
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		send_JSON_error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
 	if new_person.Name == "" || new_person.Age <= 0 {
-		http.Error(w, "Name and age are required fields", http.StatusBadRequest)
+		send_JSON_error(w, "Name and age are required fields", http.StatusBadRequest)
 		return
 	}
 
@@ -104,7 +111,7 @@ func handle_search(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("limit")
 
 	if query == "" {
-		http.Error(w, "Missing query string", http.StatusBadRequest)
+		send_JSON_error(w, "Missing query string", http.StatusBadRequest)
 		return
 	}
 
@@ -113,7 +120,7 @@ func handle_search(w http.ResponseWriter, r *http.Request) {
 		var err error
 		limit_value, err = strconv.Atoi(limit)
 		if err != nil {
-			http.Error(w, "Invalid 'limit' parameter", http.StatusBadRequest)
+			send_JSON_error(w, "Invalid 'limit' parameter", http.StatusBadRequest)
 			return
 		}
 	}
@@ -124,13 +131,13 @@ func handle_search(w http.ResponseWriter, r *http.Request) {
 
 func handle_form_submit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "request method not allowed", http.StatusBadRequest)
+		send_JSON_error(w, "request method not allowed", http.StatusBadRequest)
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
 		log.Printf("Error parsing form data %v", err)
-		http.Error(w, "error parsing form data", http.StatusBadRequest)
+		send_JSON_error(w, "error parsing form data", http.StatusBadRequest)
 		return
 	}
 
@@ -139,7 +146,7 @@ func handle_form_submit(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 
 	if username == "" || password == "" {
-		http.Error(w, "username and password are required", http.StatusBadRequest)
+		send_JSON_error(w, "username and password are required", http.StatusBadRequest)
 		return
 	}
 
@@ -147,4 +154,23 @@ func handle_form_submit(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "form submitted successfully! welcome, %s", username)
+}
+
+func send_JSON_error(w http.ResponseWriter, message string, status_code int, details ...string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status_code)
+
+	err_response := Error_Response{
+		Message: message,
+		Code:    status_code,
+	}
+
+	if len(details) > 0 && details[0] != "" {
+		err_response.Details = details[0]
+	}
+
+	if err := json.NewEncoder(w).Encode(err_response); err != nil {
+		log.Printf("failed to write error response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
