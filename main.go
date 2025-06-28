@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Person struct {
@@ -39,7 +40,7 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	fmt.Println("Starting server on port 8000")
-	log.Fatal(http.ListenAndServe(":8000", mux))
+	log.Fatal(http.ListenAndServe(":8000", logging_middleware(mux)))
 }
 
 func handle_root(w http.ResponseWriter, r *http.Request) {
@@ -173,4 +174,35 @@ func send_JSON_error(w http.ResponseWriter, message string, status_code int, det
 		log.Printf("failed to write error response: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
+}
+
+type logging_response_writer struct {
+	http.ResponseWriter
+	status_code int
+}
+
+func new_logging_response_writer(w http.ResponseWriter) *logging_response_writer {
+	return &logging_response_writer{w, http.StatusOK}
+}
+func (lrw *logging_response_writer) Write_Header(code int) {
+	lrw.status_code = code
+	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func logging_middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		lrw := new_logging_response_writer(w) // pointer
+
+		next.ServeHTTP(lrw, r)
+
+		log.Printf("%s %s %s %d %s",
+			r.RemoteAddr,
+			r.Method,
+			r.URL.Path,
+			lrw.status_code,
+			time.Since(start),
+		)
+	})
 }
